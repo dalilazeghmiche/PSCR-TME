@@ -12,8 +12,8 @@ public :
 	std::string data;
 	Chainon * next;
 	Chainon (const std::string & data, Chainon * next=nullptr);
-	size_t length() ;
-	void print (std::ostream & os) const;
+	size_t length() const;            // const
+    void print(std::ostream& os) const; // const
 };
 
 class List {
@@ -35,18 +35,18 @@ public:
 
 	void push_back (const std::string& val) ;
 
-	void push_front (const std::string& val) {
-		tete = new Chainon(val,tete);
-	}
+	void push_front(const std::string& val);
 
-	bool empty() ;
+
+	bool empty() const;    // const
 
 	size_t size() const ;
 };
 
 
-std::ostream & operator<< (std::ostream & os, const List & vec) ;
+// operator<< pour List
+std::ostream& operator<<(std::ostream& os, const List& vec);
 
-} /* namespace pr */
+} // namespace pr
 
 #endif /* SRC_LIST_H_ */
