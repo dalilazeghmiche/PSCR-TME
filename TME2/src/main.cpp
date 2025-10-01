@@ -60,24 +60,74 @@ int main(int argc, char** argv) {
 	cout << "Found a total of " << nombre_lu << " words." << endl;
 
 	} else if (mode == "unique") {
-		// skeleton for unique mode
-		// before the loop: declare a vector "seen"
-		// TODO
+    std::vector<std::string> seen;  // contiendra tous les mots uniques
+    
+    while (input >> word) {
+        word = cleanWord(word);
+        if (word.empty()) continue;  // ignorer les tokens vides
+         
+        // vérifier si le mot est déjà dans le vector
+        bool found = false;
+        for (const auto& w : seen) {
+            if (w == word) { found = true; break; }
+        }
 
-		while (input >> word) {
-			// élimine la ponctuation et les caractères spéciaux
-			word = cleanWord(word);
+        if (!found) {
+            seen.push_back(word);
+        }
+    }
 
-			// add to seen if it is new
-			// TODO
-		}
-	input.close();
-	// TODO
-	// cout << "Found " << seen.size() << " unique words." << endl;
+    input.close();
+    std::cout << "Found " << seen.size() << " unique words." << std::endl;
+    // Afficher tous les mots uniques
+    //std::cout << "Unique words found:" << std::endl;
+	
+    /*for (const auto& w : seen) {
+        std::cout << w << std::endl;
+    }*/
 
-	} else {
+}
+
+else if (mode == "freq") {
+    std::vector<std::pair<std::string, int>> freq;
+    while (input >> word) {
+        word = cleanWord(word);
+        if (word.empty()) continue;
+
+        bool found = false;
+        for (auto& p : freq) {
+            if (p.first == word) {
+                p.second++;   // incrémenter le compteur
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            freq.push_back({word, 1});  // nouveau mot rencontré
+        }
+    }
+
+    input.close();
+
+    // rechercher les mots demandés
+    auto getFreq = [&](const std::string& target) {
+        for (const auto& p : freq) {
+            if (p.first == target) return p.second;
+        }
+        return 0; // si jamais le mot n’est pas trouvé
+    };
+
+    std::cout << "Occurrences:" << std::endl;
+    std::cout << "war   : " << getFreq("war") << std::endl;
+    std::cout << "peace : " << getFreq("peace") << std::endl;
+    std::cout << "toto  : " << getFreq("toto") << std::endl;
+}
+
+
+ else {
 		// unknown mode: print usage and exit
-		cerr << "Unknown mode '" << mode << "'. Supported modes: count, unique" << endl;
+		cerr << "Unknown mode '" << mode << "'. Supported modes: count, unique, freq" << endl;
 		input.close();
 		return 1;
 	}
