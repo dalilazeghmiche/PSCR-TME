@@ -4,14 +4,14 @@
 #include <forward_list>
 #include <utility>
 #include <cstddef>
-
+#include <atomic>
 template<typename K, typename V>
-class HashMap {
+class HashMapAtomic {
 public:
     // Entry stores a const key and a mutable value
     struct Entry {
         const K key;
-        V value;
+           std::atomic<V> value; 
         Entry(const K& k, const V& v) : key(k), value(v) {}
     };
 
@@ -25,7 +25,7 @@ public:
     void incrementFrequency(const K& key, V delta = 1) {
         std::size_t idx = std::hash<K>{}(key) % buckets_.size();
         for (Entry &e : buckets_[idx]) {
-            if (e.key == key) { e.value += delta; return; }
+            if (e.key == key) { e.value.fetch_add(delta, std::memory_order_relaxed); return; }
         }
         buckets_[idx].emplace_front(key, delta);
     }
@@ -35,7 +35,7 @@ public:
         std::vector<std::pair<K,V>> out;
         for (const auto &bucket : buckets_) {
             for (const auto &e : bucket) {
-                out.emplace_back(e.key, e.value);
+                out.emplace_back(e.key, e.value.load(std::memory_order_relaxed));
             }
         }
         return out;

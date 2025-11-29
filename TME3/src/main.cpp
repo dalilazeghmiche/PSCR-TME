@@ -9,7 +9,9 @@
 #include <ios>
 #include "HashMap.h"
 #include "FileUtils.h"
-
+#include <thread>
+#include <mutex> // optionnel si tu veux protéger un accès
+#include <atomic> 
 using namespace std;
 
 int main(int argc, char **argv)
@@ -26,7 +28,8 @@ int main(int argc, char **argv)
                 filename = argv[1];
         if (argc > 2)
                 mode = argv[2];
-
+        if (argc > 3)
+                num_threads = std::stoi(argv[3]);
         // Check if file is readable
         ifstream check(filename, std::ios::binary);
         if (!check.is_open())
@@ -88,7 +91,113 @@ int main(int argc, char **argv)
                 unique_words = pairs.size();
                 pr::printResults(total_words, unique_words, pairs, mode + ".freq");
 
-        } else {
+        } else if (mode == "partition") {
+    size_t total_words = 0;
+    size_t unique_words = 0;
+    std::unordered_map<std::string, int> um;
+
+    auto parts = pr::partition(filename, file_size, num_threads);
+
+    for(size_t i = 0; i < parts.size() - 1; ++i) {
+        pr::processRange(filename, parts[i], parts[i+1], [&](const std::string& word) {
+            total_words++;
+            um[word]++;
+        });
+    }
+
+    unique_words = um.size();
+    pairs.reserve(unique_words);
+    for (const auto& p : um) pairs.emplace_back(p);
+
+    pr::printResults(total_words, unique_words, pairs, mode + ".freq");
+}else if (mode == "mt_naive") {
+    size_t total_words = 0;
+    size_t unique_words = 0;
+    std::unordered_map<std::string, int> um;
+
+    auto parts = pr::partition(filename, file_size, num_threads);
+
+    // Créer un vecteur de threads
+    std::vector<std::thread> threads;
+
+    for(size_t i = 0; i < parts.size() - 1; ++i) {
+        threads.emplace_back([&]() {  // lambda pour le thread
+            pr::processRange(filename, parts[i], parts[i+1], [&](const std::string& word) {
+                total_words++;   // ⚠ data race ici
+                um[word]++;      // ⚠ data race ici
+            });
+        });
+    }
+
+    // Boucle join
+    for(auto& t : threads) {
+        t.join();  // commente cette ligne pour voir les fautes
+    }
+
+    unique_words = um.size();
+    pairs.reserve(unique_words);
+    for (const auto& p : um) pairs.emplace_back(p);
+
+    pr::printResults(total_words, unique_words, pairs, mode + ".freq");
+}
+else if (mode == "mt_hnaive") {
+    size_t total_words = 0;
+    size_t unique_words = 0;
+    HashMap<std::string, int> hm;
+
+    // Diviser le fichier en parties
+    auto parts = pr::partition(filename, file_size, num_threads);
+
+    std::vector<std::thread> threads;
+
+    for (size_t i = 0; i < parts.size() - 1; ++i) {
+        threads.emplace_back([&]() {
+            pr::processRange(filename, parts[i], parts[i + 1], [&](const std::string& word) {
+                total_words++;               // ⚠ Data race possible
+                hm.incrementFrequency(word); // ⚠ Data race possible
+            });
+        });
+    }
+
+    // Attendre que tous les threads terminent
+    for (auto& t : threads) {
+        t.join(); 
+    }
+
+    pairs = hm.toKeyValuePairs();
+    unique_words = pairs.size();
+    pr::printResults(total_words, unique_words, pairs, mode + ".freq");
+}
+
+
+
+else if (mode == "mt_atomic") {
+    std::atomic<size_t> total_words(0);  // compteur atomique
+    size_t unique_words = 0;
+    HashMap<std::string, int> hm;       // toujours non thread-safe
+
+    auto parts = pr::partition(filename, file_size, num_threads);
+    std::vector<std::thread> threads;
+
+    for (size_t i = 0; i < parts.size() - 1; ++i) {
+        threads.emplace_back([&]() {
+            pr::processRange(filename, parts[i], parts[i + 1], [&](const std::string& word) {
+                total_words.fetch_add(1, std::memory_order_relaxed);
+                hm.incrementFrequency(word); // ⚠ Toujours data race possible
+            });
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    pairs = hm.toKeyValuePairs();
+    unique_words = pairs.size();
+    pr::printResults(total_words.load(), unique_words, pairs, mode + ".freq");
+}
+
+        else {
                 cerr << "Unknown mode '" << mode << "'. Supported modes: freqstd, freq, freqstdf" << endl;
                 return 1;
         }

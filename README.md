@@ -1,3 +1,4 @@
+nano ../TME3/src/ListLF.h
 # PSCR-TME
 
 Provided lab files for PSCR MU4IN400 course.

@@ -5,6 +5,9 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include "HashMap.h"
+#include <unordered_map>
+
 
 // helper to clean a token (keep original comments near the logic)
 static std::string cleanWord(const std::string& raw) {
@@ -50,16 +53,18 @@ int main(int argc, char** argv) {
 			word = cleanWord(word);
 
 			// word est maintenant "tout propre"
-			if (nombre_lu % 100 == 0)
+			/* (nombre_lu % 100 == 0)
 				// on affiche un mot "propre" sur 100
-				cout << nombre_lu << ": "<< word << endl;
+				cout << nombre_lu << ": "<< word << endl;*/
 			nombre_lu++;
 		}
 	input.close();
 	cout << "Finished parsing." << endl;
 	cout << "Found a total of " << nombre_lu << " words." << endl;
 
-	} else if (mode == "unique") {
+	}
+
+     else if (mode == "unique") {
     std::vector<std::string> seen;  // contiendra tous les mots uniques
     
     while (input >> word) {
@@ -122,10 +127,110 @@ else if (mode == "freq") {
     std::cout << "war   : " << getFreq("war") << std::endl;
     std::cout << "peace : " << getFreq("peace") << std::endl;
     std::cout << "toto  : " << getFreq("toto") << std::endl;
+
+
+
+
+	// 🔹 Étape 5 : trier par nombre d'occurrences décroissantes
+std::sort(freq.begin(), freq.end(),
+          [](const std::pair<std::string, int>& a, const std::pair<std::string, int>& b) {
+              return a.second > b.second;  // tri décroissant
+          });
+
+// 🔹 Afficher les 10 mots les plus fréquents
+std::cout << "\nLes 10 mots les plus fréquents :" << std::endl;
+for (size_t i = 0; i < 10 && i < freq.size(); ++i) {
+    std::cout << freq[i].first << " (" << freq[i].second << " occurrences)" << std::endl;
+}
+}
+  
+
+else if (mode == "freqhash") {
+    // Exemple : taille initiale = 100
+
+    size_t initial_table_size = 1024; // tester 100, 1024, 10000
+    HashMap<std::string,int> freqmap(initial_table_size);
+auto start = std::chrono::steady_clock::now();  // début du chronomètre
+    while (input >> word) {
+        word = cleanWord(word);
+        if (word.empty()) continue;
+
+        int* val = freqmap.get(word);
+        if (val) {
+            (*val)++; // incrémenter si déjà présent
+        } else {
+            freqmap.put(word, 1); // sinon ajouter
+        }
+    }
+
+    input.close();
+auto end = std::chrono::steady_clock::now();    // fin du chronomètre
+auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+std::cout << "Total runtime (wall clock) : " << elapsed << " ms" << std::endl;
+
+    // afficher quelques mots spécifiques
+    std::cout << "Occurrences:" << std::endl;
+    std::cout << "war   : " << (freqmap.get("war") ? *freqmap.get("war") : 0) << std::endl;
+    std::cout << "peace : " << (freqmap.get("peace") ? *freqmap.get("peace") : 0) << std::endl;
+  
+  std::cout << "toto  : " << (freqmap.get("toto") ? *freqmap.get("toto") : 0) << std::endl;
+
+  auto kvPairs = freqmap.toKeyValuePairs();
+
+// trier par nombre d'occurrences décroissantes
+std::sort(kvPairs.begin(), kvPairs.end(), 
+    [](const std::pair<std::string,int>& a, const std::pair<std::string,int>& b) {
+        return a.second > b.second;
+    });
+
+// afficher les 10 mots les plus fréquents
+std::cout << "\nLes 10 mots les plus fréquents :" << std::endl;
+for (size_t i = 0; i < 10 && i < kvPairs.size(); ++i) {
+    std::cout << kvPairs[i].first << " (" << kvPairs[i].second << " occurrences)" << std::endl;
+}
+
+}
+if (mode == "freqstd") {
+    std::unordered_map<std::string,int> freqmap;
+    std::string word;
+
+    // Lecture du fichier et comptage
+    while (input >> word) {
+        word = cleanWord(word);
+        if (word.empty()) continue;
+        freqmap[word]++;
+    }
+    input.close();
+
+    // 2️⃣ Extraire les paires clé/valeur dans un vecteur et trier
+    std::vector<std::pair<std::string,int>> kvPairs(freqmap.begin(), freqmap.end());
+    std::sort(kvPairs.begin(), kvPairs.end(),
+              [](const std::pair<std::string,int>& a,
+                 const std::pair<std::string,int>& b) {
+                     return a.second > b.second;
+              });
+
+    // 3️⃣ Afficher les 10 mots les plus fréquents et quelques mots spécifiques
+    std::cout << "Occurrences:\n";
+    std::cout << "war   : " << freqmap["war"] << "\n";
+    std::cout << "peace : " << freqmap["peace"] << "\n";
+    std::cout << "toto  : " << freqmap["toto"] << "\n";
+
+    std::cout << "\nTop 10 mots les plus fréquents :" << std::endl;
+    for (size_t i = 0; i < 10 && i < kvPairs.size(); ++i) {
+        std::cout << kvPairs[i].first << " (" << kvPairs[i].second << " occurrences)" << std::endl;
+    }
+
+    // Mesure du temps total
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "Total runtime (wall clock) : "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms" << std::endl;
 }
 
 
- else {
+  else{
 		// unknown mode: print usage and exit
 		cerr << "Unknown mode '" << mode << "'. Supported modes: count, unique, freq" << endl;
 		input.close();

@@ -35,13 +35,44 @@ public:
 
 	void push_back (const std::string& val) ;
 
-	void push_front(const std::string& val);
+	// FAUTE : corps dans le cpp
+ void push_front (const std::string& val) ;
 
 
-	bool empty() const;    // const
+	bool empty();    // const
 
 	size_t size() const ;
-};
+class ConstListIte {
+ const Chainon * cur;
+ public:
+ // default ctor = end()
+ConstListIte (const Chainon * cur=nullptr) : cur(cur) {}
+
+ const auto & operator* () const {
+ return cur->data;
+ }
+ const auto * operator-> () const {
+ return & cur->data;
+ }
+ ConstListIte & operator++ () {
+ cur = cur->next;
+ return *this;
+ }
+ bool operator!= (const ConstListIte &o) const {
+ return cur != o.cur;
+ }
+ };
+
+ typedef ConstListIte const_iterator;
+
+ const_iterator begin() const {
+ return tete;
+ }
+ const_iterator end() const {
+ return nullptr;
+ }
+ };
+
 
 
 // operator<< pour List

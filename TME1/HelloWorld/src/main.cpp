@@ -17,11 +17,11 @@ int main() {
     cout << endl;
 
     // Vérification
-    for (size_t i = 9; i > 0; i--) {   // ⚠ Correction : i > 0 pour éviter sous-flux
-        if (tab[i] - tab[i-1] != 1) {
-            cout << "probleme !" << endl;
-        }
+    for (int i = 9; i >= 0; i--) {
+    if (tab[i] - tab[i-1] != 1) {
+        cout << "probleme !";
     }
+}
 
     return 0;
 }
